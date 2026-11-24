@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#064e3b">
+  <title>JEHOVÁ JIREH | Boutique & Accessories</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="config.js"></script>
+  <script defer src="app.js"></script>
+</head>
+<body>
+  <header class="site-header">
+    <a class="brand" href="#">
+      <span class="brand-mark">JJ</span>
+      <span><strong>JEHOVÁ JIREH</strong><small>BOUTIQUE & ACCESSORIES</small></span>
+    </a>
+    <a class="header-link" href="#catalogo">Ver catálogo</a>
+  </header>
+  <main>
+    <section class="hero">
+      <p class="eyebrow">DETALLES QUE HACEN LA DIFERENCIA</p>
+      <h1>Tu estilo,<br><em>tu esencia.</em></h1>
+      <p class="hero-copy">Descubre accesorios seleccionados para acompañarte en cada momento.</p>
+      <a class="gold-button" href="#catalogo">Explorar colección</a>
+    </section>
+    <section id="catalogo" class="catalog-section">
+      <div class="section-heading">
+        <div><p class="eyebrow">NUESTRA SELECCIÓN</p><h2>Catálogo</h2></div>
+        <span id="product-count" class="muted">Cargando productos…</span>
+      </div>
+      <div id="status" class="status">Conectando con JEHOVÁ JIREH…</div>
+      <div id="products" class="product-grid"></div>
+    </section>
+  </main>
+  <footer><strong>JEHOVÁ JIREH</strong><span>Elegancia en cada detalle.</span></footer>
+</body>
+</html>

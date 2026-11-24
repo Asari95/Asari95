@@ -1,16 +1,17 @@
-## Hi there 👋
+# JEHOVÁ JIREH — Boutique & Accessories
 
-<!--
-**Asari95/Asari95** is a ✨ _special_ ✨ repository because its `README.md` (this file) appears on your GitHub profile.
+Catálogo inicial conectado a Supabase.
 
-Here are some ideas to get you started:
+## Configuración
+1. Abre `config.js`.
+2. Reemplaza `PEGA_AQUI_TU_PROJECT_URL` por tu Project URL.
+3. Reemplaza `PEGA_AQUI_TU_PUBLISHABLE_KEY` por tu Publishable key.
+4. Publica estos archivos mediante GitHub Pages o Cloudflare Pages.
 
-- 🔭 I’m currently working on ...
-- 🌱 I’m currently learning ...
-- 👯 I’m looking to collaborate on ...
-- 🤔 I’m looking for help with ...
-- 💬 Ask me about ...
-- 📫 How to reach me: ...
-- 😄 Pronouns: ...
-- ⚡ Fun fact: ...
--->
+La clave publishable (o anon heredada) está diseñada para uso público. Nunca agregues `service_role` ni claves `secret` al sitio.
+
+## Base de datos
+La página lee `public.products` y muestra solo registros con `active = true`.
+La política RLS de lectura pública debe permitir SELECT a `anon` y `authenticated` con `using (active = true)`.
+
+Este primer prototipo solo muestra productos. Todavía no permite administrar inventario ni registrar pedidos.
