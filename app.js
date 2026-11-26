@@ -210,7 +210,7 @@
 
 
 // Finalizar pedido por WhatsApp con datos del cliente
-document.getElementById("checkout-whatsapp").addEventListener("click", () => {
+document.getElementById("checkout-whatsapp").addEventListener("click", async () => {
 
   if (!cart.length) {
     alert("Tu carrito está vacío.");
@@ -300,6 +300,47 @@ TOTAL: ${money(total)}
   );
 
   if (!confirmation) return;
+
+// Guardar pedido en Supabase antes de abrir WhatsApp
+const ordersClient = window.supabase.createClient(
+  config.SUPABASE_URL,
+  config.SUPABASE_PUBLISHABLE_KEY
+);
+
+const orderItems = cart.map(item => {
+  const product = products.find(p => p.id === item.id);
+
+  return {
+    product_id: product.id,
+    name: product.name,
+    quantity: item.quantity,
+    unit_price: Number(product.price),
+    subtotal: Number(product.price) * item.quantity
+  };
+}).filter(item => item.product_id);
+
+const { data: savedOrder, error: orderError } = await ordersClient
+  .from("orders")
+  .insert({
+    customer_name: name.trim(),
+    customer_phone: customerPhone.trim(),
+    customer_address: delivery === "1" ? address.trim() : null,
+    delivery_method: delivery === "1" ? "envio" : "recoger",
+    references_text: delivery === "1" ? references.trim() : null,
+    items: orderItems,
+    total: total,
+    status: "pending"
+  })
+  .select("id")
+  .single();
+
+if (orderError) {
+  console.error("Error al guardar pedido:", orderError);
+  alert("No se pudo registrar tu pedido. Inténtalo nuevamente.");
+  return;
+}
+
+console.log("Pedido registrado:", savedOrder.id);
 
   const phone = "529996165485";
   const whatsappURL =
