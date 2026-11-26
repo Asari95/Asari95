@@ -116,6 +116,36 @@ loginForm.addEventListener("submit", async (event) => {
   await showDashboard();
 });
 
+// Botón para recuperar contraseña
+const recoveryButton = document.createElement("button");
+recoveryButton.type = "button";
+recoveryButton.textContent = "¿Olvidaste tu contraseña?";
+recoveryButton.style.marginTop = "12px";
+
+loginForm.insertAdjacentElement("afterend", recoveryButton);
+
+recoveryButton.addEventListener("click", async () => {
+  const email = document.getElementById("email").value.trim();
+
+  if (!email) {
+    showMessage("Primero escribe tu correo electrónico.", true);
+    return;
+  }
+
+  showMessage("Solicitando enlace de recuperación...", false);
+
+  const { error } = await supabaseClient.auth.resetPasswordForEmail(email, {
+    redirectTo: "https://asari95.github.io/Asari95/admin.html"
+  });
+
+  if (error) {
+    showMessage("No se pudo enviar el correo: " + error.message, true);
+    return;
+  }
+
+  showMessage("Solicitud enviada. Revisa tu correo electrónico.", false);
+});
+
 // Comprobar sesión existente
 async function checkSession() {
   const { data, error } = await supabaseClient.auth.getSession();
