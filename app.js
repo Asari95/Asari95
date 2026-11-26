@@ -347,12 +347,14 @@ if (orderError) {
 
 console.log("Pedido registrado correctamente");
 
-  const phone = "529996165485";
-  const whatsappURL =
-    `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
+const phone = "529996165485";
+const whatsappURL =
+  `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
 
+console.log("Enlace de WhatsApp:", whatsappURL);
+alert("Pedido guardado. Ahora se abrirá WhatsApp.");
 
-  window.location.href = whatsappURL;
+window.location.assign(whatsappURL);
 });
 
 
