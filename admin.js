@@ -1,9 +1,9 @@
 
-// JEHOVÁ JIREH - Administración
+ // JEHOVÁ JIREH - Administración
+
 const cfg = window.JJ_CONFIG;
 
 const supabaseClient = supabase.createClient(
-
   cfg.SUPABASE_URL,
   cfg.SUPABASE_PUBLISHABLE_KEY
 );
