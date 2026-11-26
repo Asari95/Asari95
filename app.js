@@ -208,15 +208,51 @@
     }).join("");
   }
 
-// Finalizar pedido por WhatsApp
+
+// Finalizar pedido por WhatsApp con datos del cliente
 document.getElementById("checkout-whatsapp").addEventListener("click", () => {
-  alert("¡El botón de WhatsApp está funcionando!");
-  
+
   if (!cart.length) {
     alert("Tu carrito está vacío.");
     return;
   }
 
+  // Solicitar datos del cliente
+  const name = prompt("¿Cuál es tu nombre completo?");
+  if (!name || !name.trim()) {
+    alert("Necesitamos tu nombre para continuar.");
+    return;
+  }
+
+  const customerPhone = prompt("¿Cuál es tu número de teléfono?");
+  if (!customerPhone || !customerPhone.trim()) {
+    alert("Necesitamos tu teléfono para continuar.");
+    return;
+  }
+
+  const delivery = prompt(
+    "Selecciona el método de entrega:\n\n1. Envío a domicilio\n2. Recoger mi pedido"
+  );
+
+  if (delivery !== "1" && delivery !== "2") {
+    alert("Selecciona 1 para envío o 2 para recoger.");
+    return;
+  }
+
+  let address = "";
+  let references = "";
+
+  if (delivery === "1") {
+    address = prompt("Escribe tu dirección completa:");
+    if (!address || !address.trim()) {
+      alert("Necesitamos tu dirección de entrega.");
+      return;
+    }
+
+    references = prompt("¿Tienes alguna referencia para localizar tu domicilio?") || "Sin referencias";
+  }
+
+  // Preparar productos y calcular total
   let total = 0;
 
   const details = cart.map(item => {
@@ -227,26 +263,51 @@ document.getElementById("checkout-whatsapp").addEventListener("click", () => {
     total += subtotal;
 
     return `• ${product.name}
-  Cantidad: ${item.quantity}
-  Precio: ${money(product.price)}
-  Subtotal: ${money(subtotal)}`;
+Cantidad: ${item.quantity}
+Precio unitario: ${money(product.price)}
+Subtotal: ${money(subtotal)}`;
   }).filter(Boolean).join("\n\n");
+
+  if (!details) {
+    alert("No se encontraron los productos de tu carrito.");
+    return;
+  }
+
+  // Construir mensaje
+  const deliveryText = delivery === "1"
+    ? "Envío a domicilio"
+    : "Recoger pedido";
 
   const message = `¡Hola! Quiero realizar un pedido en JEHOVÁ JIREH.
 
-Mi pedido:
+DATOS DEL CLIENTE
+Nombre: ${name.trim()}
+Teléfono: ${customerPhone.trim()}
+Entrega: ${deliveryText}
+${delivery === "1" ? `Dirección: ${address.trim()}\nReferencias: ${references.trim()}` : ""}
+
+DETALLE DEL PEDIDO
 
 ${details}
 
 TOTAL: ${money(total)}
 
-¿Me pueden confirmar la disponibilidad y los datos para realizar el pago?`;
+¡Gracias! Quedo pendiente de la confirmación de mi pedido.`;
+
+  // Confirmar antes de abrir WhatsApp
+  const confirmation = confirm(
+    `RESUMEN DE TU PEDIDO\n\nCliente: ${name}\nEntrega: ${deliveryText}\nTotal: ${money(total)}\n\n¿Deseas continuar a WhatsApp?`
+  );
+
+  if (!confirmation) return;
 
   const phone = "529996165485";
-  const whatsappURL = `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
+  const whatsappURL =
+    `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
 
   window.open(whatsappURL, "_blank");
 });
+
 
   // Agregar productos
   productsEl.addEventListener("click", event => {
