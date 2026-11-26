@@ -210,6 +210,8 @@
 
 // Finalizar pedido por WhatsApp
 document.getElementById("checkout-whatsapp").addEventListener("click", () => {
+  alert("¡El botón de WhatsApp está funcionando!");
+  
   if (!cart.length) {
     alert("Tu carrito está vacío.");
     return;
