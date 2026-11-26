@@ -38,9 +38,13 @@
     <h2>Mi carrito 🛒</h2>
     <p id="cart-count">0 productos</p>
     <div id="cart-items"></div>
-    <div class="cart-total">
-      <strong>Total: <span id="cart-total">$0.00</span></strong>
-    </div>
+   
+<div class="cart-total">
+  <strong>Total: <span id="cart-total">$0.00</span></strong>
+</div>
+<button id="checkout-whatsapp" class="add-cart-button" type="button">
+  Finalizar pedido por WhatsApp
+</button>
   `;
 
   productsEl.insertAdjacentElement("beforebegin", cartEl);
@@ -203,6 +207,44 @@
       `;
     }).join("");
   }
+
+// Finalizar pedido por WhatsApp
+document.getElementById("checkout-whatsapp").addEventListener("click", () => {
+  if (!cart.length) {
+    alert("Tu carrito está vacío.");
+    return;
+  }
+
+  let total = 0;
+
+  const details = cart.map(item => {
+    const product = products.find(p => p.id === item.id);
+    if (!product) return "";
+
+    const subtotal = Number(product.price) * item.quantity;
+    total += subtotal;
+
+    return `• ${product.name}
+  Cantidad: ${item.quantity}
+  Precio: ${money(product.price)}
+  Subtotal: ${money(subtotal)}`;
+  }).filter(Boolean).join("\n\n");
+
+  const message = `¡Hola! Quiero realizar un pedido en JEHOVÁ JIREH.
+
+Mi pedido:
+
+${details}
+
+TOTAL: ${money(total)}
+
+¿Me pueden confirmar la disponibilidad y los datos para realizar el pago?`;
+
+  const phone = "529996165485";
+  const whatsappURL = `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
+
+  window.open(whatsappURL, "_blank");
+});
 
   // Agregar productos
   productsEl.addEventListener("click", event => {
