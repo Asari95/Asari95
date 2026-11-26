@@ -319,7 +319,7 @@ const orderItems = cart.map(item => {
   };
 }).filter(item => item.product_id);
 
-const { data: savedOrder, error: orderError } = await ordersClient
+const { error: orderError } = await ordersClient
   .from("orders")
   .insert({
     customer_name: name.trim(),
@@ -330,10 +330,15 @@ const { data: savedOrder, error: orderError } = await ordersClient
     items: orderItems,
     total: total,
     status: "pending"
-  })
-  .select("id")
-  .single();
+  });
 
+if (orderError) {
+  console.error("Error al guardar pedido:", orderError);
+  alert("No se pudo registrar tu pedido. Inténtalo nuevamente.");
+  return;
+}
+
+console.log("Pedido registrado correctamente");
 if (orderError) {
   console.error("Error al guardar pedido:", orderError);
   alert("No se pudo registrar tu pedido. Inténtalo nuevamente.");
