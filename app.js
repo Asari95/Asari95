@@ -305,7 +305,8 @@ TOTAL: ${money(total)}
   const whatsappURL =
     `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
 
-  window.open(whatsappURL, "_blank");
+
+  window.location.href = whatsappURL;
 });
 
 
