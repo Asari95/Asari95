@@ -17,6 +17,77 @@ const adminContent = document.getElementById("admin-content");
 let currentUser = null;
 let products = [];
 
+// Recuperación de contraseña
+supabaseClient.auth.onAuthStateChange((event, session) => {
+  if (event !== "PASSWORD_RECOVERY") return;
+
+  loginSection.hidden = true;
+  dashboard.hidden = false;
+
+  adminContent.innerHTML = `
+    <h2>Restablecer contraseña</h2>
+    <p>Escribe tu nueva contraseña para JEHOVÁ JIREH.</p>
+
+    <form id="recovery-form">
+      <label>Nueva contraseña</label>
+      <input
+        type="password"
+        id="new-password"
+        minlength="8"
+        required
+        placeholder="Mínimo 8 caracteres"
+      >
+
+      <label>Confirmar contraseña</label>
+      <input
+        type="password"
+        id="confirm-password"
+        minlength="8"
+        required
+        placeholder="Repite tu contraseña"
+      >
+
+      <button type="submit">Guardar nueva contraseña</button>
+      <p id="recovery-message"></p>
+    </form>
+  `;
+
+  document.getElementById("recovery-form")
+    .addEventListener("submit", async (e) => {
+      e.preventDefault();
+
+      const password = document.getElementById("new-password").value;
+      const confirmation = document.getElementById("confirm-password").value;
+      const message = document.getElementById("recovery-message");
+
+      if (password !== confirmation) {
+        message.textContent = "Las contraseñas no coinciden.";
+        return;
+      }
+
+      message.textContent = "Actualizando contraseña...";
+
+      const { error } = await supabaseClient.auth.updateUser({
+        password: password
+      });
+
+      if (error) {
+        message.textContent = "Error: " + error.message;
+        return;
+      }
+
+      message.textContent = "¡Contraseña actualizada correctamente!";
+
+      await supabaseClient.auth.signOut();
+
+      dashboard.hidden = true;
+      loginSection.hidden = false;
+      loginForm.reset();
+
+      showMessage("Ya puedes iniciar sesión con tu nueva contraseña.", false);
+    });
+});
+
 function showMessage(message, isError = true) {
   loginMessage.textContent = message;
   loginMessage.style.color = isError ? "#ffb3a7" : "#a8e6b0";
