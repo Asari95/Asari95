@@ -345,7 +345,7 @@ if (orderError) {
   return;
 }
 
-console.log("Pedido registrado:", savedOrder.id);
+console.log("Pedido registrado correctamente");
 
   const phone = "529996165485";
   const whatsappURL =
