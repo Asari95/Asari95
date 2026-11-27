@@ -1,4 +1,3 @@
-
 // ==========================================
 // JEHOVÁ JIREH - ADMINISTRACIÓN
 // Inventario automático al completar ventas
@@ -20,6 +19,7 @@ const adminContent = document.getElementById("admin-content");
 let currentUser = null;
 let products = [];
 let allOrders = [];
+let inventoryMovements = [];
 
 function money(amount) {
   return new Intl.NumberFormat("es-MX", {
@@ -256,6 +256,17 @@ async function showDashboard() {
 
     <hr>
 
+    <section id="inventory-history-section">
+      <h2>Historial de inventario 📦</h2>
+      <p id="inventory-message">Cargando movimientos...</p>
+      <button type="button" id="reload-inventory">
+        Actualizar historial
+      </button>
+      <div id="inventory-list"></div>
+    </section>
+
+    <hr>
+
     <section id="orders-section">
       <h2>Pedidos recibidos 🛍️</h2>
 
@@ -286,7 +297,7 @@ async function showDashboard() {
   `;
 
   document.getElementById("product-form")
-    .addEventListener("submit", saveProduct);
+      .addEventListener("submit", saveProduct);
 
   document.getElementById("logout-button")
     .addEventListener("click", logout);
@@ -295,7 +306,11 @@ async function showDashboard() {
     .addEventListener("click", async () => {
       await loadOrders();
       await loadProducts();
+      await loadInventoryMovements();
     });
+
+  document.getElementById("reload-inventory")
+    .addEventListener("click", loadInventoryMovements);
 
   document.getElementById("order-search")
     .addEventListener("input", renderOrders);
@@ -305,6 +320,7 @@ async function showDashboard() {
 
   await loadProducts();
   await loadOrders();
+  await loadInventoryMovements();
 }
 
 // ==========================================
@@ -384,6 +400,108 @@ async function loadOrders() {
     message.textContent =
       "Error inesperado: " + error.message;
   }
+}
+
+// ==========================================
+// HISTORIAL DE MOVIMIENTOS DE INVENTARIO
+// ==========================================
+
+async function loadInventoryMovements() {
+  const message = document.getElementById("inventory-message");
+  const list = document.getElementById("inventory-list");
+
+  if (!message || !list) return;
+
+  message.textContent = "Cargando movimientos...";
+  list.textContent = "";
+
+  try {
+    const { data, error } = await supabaseClient
+      .from("inventory_movements")
+      .select("*")
+      .order("created_at", { ascending: false });
+
+    if (error) {
+      message.textContent =
+        "No se pudo cargar el historial: " + error.message;
+      return;
+    }
+
+    inventoryMovements = data || [];
+    renderInventoryMovements();
+
+  } catch (error) {
+    message.textContent =
+      "Error inesperado al cargar el historial: " + error.message;
+  }
+}
+
+function renderInventoryMovements() {
+  const message = document.getElementById("inventory-message");
+  const list = document.getElementById("inventory-list");
+
+  if (!message || !list) return;
+
+  list.innerHTML = "";
+
+  message.textContent =
+    `Movimientos registrados: ${inventoryMovements.length}`;
+
+  if (inventoryMovements.length === 0) {
+    list.textContent =
+      "Todavía no hay movimientos de inventario registrados.";
+    return;
+  }
+
+  inventoryMovements.forEach(movement => {
+    const card = document.createElement("article");
+    card.className = "product-admin-card";
+
+    const typeLabels = {
+      sale: "Venta (salida de inventario)",
+      restock: "Reabastecimiento (entrada de inventario)",
+      adjustment: "Ajuste de inventario"
+    };
+
+    const title = createTextElement(
+      "h3",
+      movement.product_name || "Producto sin nombre"
+    );
+
+    const type = createTextElement(
+      "p",
+      "Movimiento: " +
+        (typeLabels[movement.movement_type] ||
+         movement.movement_type ||
+         "No especificado")
+    );
+
+    const quantity = createTextElement(
+      "p",
+      "Cantidad: " + movement.quantity
+    );
+
+    const date = createTextElement(
+      "p",
+      "Fecha: " +
+        new Date(movement.created_at).toLocaleString("es-MX")
+    );
+
+    const order = createTextElement(
+      "p",
+      movement.order_id
+        ? "Pedido relacionado: #" + movement.order_id.slice(0, 8)
+        : "Sin pedido relacionado"
+    );
+
+    const note = createTextElement(
+      "p",
+      "Nota: " + (movement.note || "Sin nota")
+    );
+
+    card.append(title, type, quantity, date, order, note);
+    list.appendChild(card);
+  });
 }
 
 // ==========================================
@@ -479,7 +597,7 @@ function createWhatsAppMessage(order) {
 
   return [
     "¡Hola " + order.customer_name + "! 👋",
-    "",
+        "",
     "Te contactamos de JEHOVÁ JIREH.",
     "Este es el detalle de tu pedido:",
     "",
@@ -763,6 +881,10 @@ async function updateOrderStatus(orderId, newStatus, button) {
 
     await loadOrders();
     await loadProducts();
+
+    if (newStatus === "completed") {
+      await loadInventoryMovements();
+    }
 
   } catch (error) {
     alert("Error inesperado: " + error.message);
