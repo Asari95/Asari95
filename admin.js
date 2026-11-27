@@ -1,5 +1,5 @@
 
- // JEHOVÁ JIREH - Administración
+// JEHOVÁ JIREH - Administración
 
 const cfg = window.JJ_CONFIG;
 
@@ -16,6 +16,20 @@ const adminContent = document.getElementById("admin-content");
 
 let currentUser = null;
 let products = [];
+
+// Formatear cantidades en pesos mexicanos
+function money(amount) {
+  return new Intl.NumberFormat("es-MX", {
+    style: "currency",
+    currency: "MXN"
+  }).format(Number(amount) || 0);
+}
+
+// Mostrar mensajes de inicio de sesión
+function showMessage(message, isError = true) {
+  loginMessage.textContent = message;
+  loginMessage.style.color = isError ? "#ffb3a7" : "#a8e6b0";
+}
 
 // Recuperación de contraseña
 supabaseClient.auth.onAuthStateChange((event, session) => {
@@ -84,14 +98,12 @@ supabaseClient.auth.onAuthStateChange((event, session) => {
       loginSection.hidden = false;
       loginForm.reset();
 
-      showMessage("Ya puedes iniciar sesión con tu nueva contraseña.", false);
+      showMessage(
+        "Ya puedes iniciar sesión con tu nueva contraseña.",
+        false
+      );
     });
 });
-
-function showMessage(message, isError = true) {
-  loginMessage.textContent = message;
-  loginMessage.style.color = isError ? "#ffb3a7" : "#a8e6b0";
-}
 
 // Iniciar sesión
 loginForm.addEventListener("submit", async (event) => {
@@ -118,6 +130,7 @@ loginForm.addEventListener("submit", async (event) => {
 
 // Botón para recuperar contraseña
 const recoveryButton = document.createElement("button");
+
 recoveryButton.type = "button";
 recoveryButton.textContent = "¿Olvidaste tu contraseña?";
 recoveryButton.style.marginTop = "12px";
@@ -151,7 +164,7 @@ async function checkSession() {
   const { data, error } = await supabaseClient.auth.getSession();
 
   if (error) {
-    showMessage("Error al verificar la sesión.");
+    showMessage("Error al verificar la sesión: " + error.message);
     return;
   }
 
@@ -161,7 +174,7 @@ async function checkSession() {
   }
 }
 
-// Mostrar panel
+// Mostrar panel de administración
 async function showDashboard() {
   loginSection.hidden = true;
   dashboard.hidden = false;
@@ -190,10 +203,22 @@ async function showDashboard() {
         </select>
 
         <label>Precio (MXN)</label>
-        <input id="product-price" type="number" min="0" step="0.01" required>
+        <input
+          id="product-price"
+          type="number"
+          min="0"
+          step="0.01"
+          required
+        >
 
         <label>Existencias</label>
-        <input id="product-stock" type="number" min="0" step="1" required>
+        <input
+          id="product-stock"
+          type="number"
+          min="0"
+          step="1"
+          required
+        >
 
         <label>Fotografía del producto</label>
         <input id="product-image" type="file" accept="image/*">
@@ -204,21 +229,21 @@ async function showDashboard() {
 
     <hr>
 
-   <h3>Productos registrados</h3>
-<div id="product-list">Cargando...</div>
+    <h3>Productos registrados</h3>
+    <div id="product-list">Cargando...</div>
 
-<hr>
+    <hr>
 
-<section id="orders-section">
-  <h2>Pedidos recibidos 🛍️</h2>
-  <p id="orders-message">Cargando pedidos...</p>
+    <section id="orders-section">
+      <h2>Pedidos recibidos 🛍️</h2>
+      <p id="orders-message">Cargando pedidos...</p>
 
-  <button type="button" id="reload-orders">
-    Actualizar pedidos
-  </button>
+      <button type="button" id="reload-orders">
+        Actualizar pedidos
+      </button>
 
-  <div id="orders-list"></div>
-</section>
+      <div id="orders-list"></div>
+    </section>
   `;
 
   document.getElementById("product-form")
@@ -226,41 +251,48 @@ async function showDashboard() {
 
   document.getElementById("logout-button")
     .addEventListener("click", logout);
- 
-await loadOrders();
 
-document.getElementById("reload-orders")
-  .addEventListener("click", loadOrders);
+  // Cargar productos y pedidos
+  await loadProducts();
+  await loadOrders();
+
+  document.getElementById("reload-orders")
+    .addEventListener("click", loadOrders);
 }
 
-// Cargar productos
+// Cargar productos desde Supabase
 async function loadProducts() {
   const message = document.getElementById("admin-message");
   const list = document.getElementById("product-list");
 
-  const { data, error } = await supabaseClient
-    .from("products")
-    .select("*")
-    .order("created_at", { ascending: false });
+  message.textContent = "Cargando productos...";
+  list.textContent = "Cargando...";
 
-  if (error) {
-    message.textContent = "No se pudieron cargar los productos: " + error.message;
+  try {
+    const { data, error } = await supabaseClient
+      .from("products")
+      .select("*")
+      .order("created_at", { ascending: false });
+
+    if (error) {
+      message.textContent =
+        "No se pudieron cargar los productos: " + error.message;
+      list.textContent = "";
+      return;
+    }
+
+    products = data || [];
+
+    message.textContent =
+      `Productos registrados: ${products.length}`;
+
+    renderProducts();
+
+  } catch (error) {
+    message.textContent =
+      "Error inesperado al cargar productos: " + error.message;
     list.textContent = "";
-    return;
   }
-
-  products = data || [];
-  message.textContent = `Productos registrados: ${products.length}`;
-
-  renderProducts();
-}
-
-// Formatear cantidades en pesos mexicanos
-function money(amount) {
-  return new Intl.NumberFormat("es-MX", {
-    style: "currency",
-    currency: "MXN"
-  }).format(Number(amount) || 0);
 }
 
 // Cargar pedidos desde Supabase
@@ -271,21 +303,29 @@ async function loadOrders() {
   message.textContent = "Cargando pedidos...";
   list.innerHTML = "";
 
-  const { data, error } = await supabaseClient
-    .from("orders")
-    .select("*")
-    .order("created_at", { ascending: false });
+  try {
+    const { data, error } = await supabaseClient
+      .from("orders")
+      .select("*")
+      .order("created_at", { ascending: false });
 
-  if (error) {
+    if (error) {
+      message.textContent =
+        "Error al cargar pedidos: " + error.message;
+      return;
+    }
+
+    const orders = data || [];
+
     message.textContent =
-      "Error al cargar pedidos: " + error.message;
-    return;
+      `Pedidos recibidos: ${orders.length}`;
+
+    renderOrders(orders);
+
+  } catch (error) {
+    message.textContent =
+      "Error inesperado al cargar pedidos: " + error.message;
   }
-
-  message.textContent =
-    `Pedidos recibidos: ${data.length}`;
-
-  renderOrders(data || []);
 }
 
 // Mostrar pedidos
@@ -404,21 +444,31 @@ function renderOrders(orders) {
 async function updateOrderStatus(orderId, newStatus, button) {
   button.disabled = true;
 
-  const { error } = await supabaseClient
-    .from("orders")
-    .update({ status: newStatus })
-    .eq("id", orderId);
+  const originalText = button.textContent;
+  button.textContent = "Actualizando...";
 
-  button.disabled = false;
+  try {
+    const { error } = await supabaseClient
+      .from("orders")
+      .update({ status: newStatus })
+      .eq("id", orderId);
 
-  if (error) {
-    alert("No se pudo actualizar el pedido: " + error.message);
-    return;
+    if (error) {
+      alert("No se pudo actualizar el pedido: " + error.message);
+      return;
+    }
+
+    alert("¡Estado del pedido actualizado correctamente!");
+
+    await loadOrders();
+
+  } catch (error) {
+    alert("Error inesperado: " + error.message);
+
+  } finally {
+    button.disabled = false;
+    button.textContent = originalText;
   }
-
-  alert("¡Estado del pedido actualizado correctamente!");
-
-  await loadOrders();
 }
 
 // Mostrar productos
@@ -440,10 +490,12 @@ function renderProducts() {
 
     const details = document.createElement("p");
     details.textContent =
-      `${product.category} | $${Number(product.price).toFixed(2)} MXN | Existencias: ${product.stock}`;
+      `${product.category} | ${money(product.price)} | Existencias: ${product.stock}`;
 
     const status = document.createElement("p");
-    status.textContent = product.active ? "Visible en la tienda" : "Oculto en la tienda";
+    status.textContent = product.active
+      ? "Visible en la tienda"
+      : "Oculto en la tienda";
 
     card.append(title, details, status);
 
@@ -487,9 +539,15 @@ async function saveProduct(event) {
   const stock = Number(document.getElementById("product-stock").value);
   const imageFile = document.getElementById("product-image").files[0];
 
-  if (!name || !Number.isFinite(price) || price < 0 ||
-      !Number.isInteger(stock) || stock < 0) {
-    message.textContent = "Revisa el nombre, precio y existencias.";
+  if (
+    !name ||
+    !Number.isFinite(price) ||
+    price < 0 ||
+    !Number.isInteger(stock) ||
+    stock < 0
+  ) {
+    message.textContent =
+      "Revisa el nombre, precio y existencias.";
     return;
   }
 
@@ -497,19 +555,22 @@ async function saveProduct(event) {
 
   if (imageFile) {
     if (!imageFile.type.startsWith("image/")) {
-      message.textContent = "Selecciona un archivo de imagen válido.";
+      message.textContent =
+        "Selecciona un archivo de imagen válido.";
       return;
     }
 
     const extension = imageFile.name.split(".").pop().toLowerCase();
-    const filePath = `${currentUser.id}/${crypto.randomUUID()}.${extension}`;
+    const filePath =
+      `${currentUser.id}/${crypto.randomUUID()}.${extension}`;
 
     const { error: uploadError } = await supabaseClient.storage
       .from("product-images")
       .upload(filePath, imageFile);
 
     if (uploadError) {
-      message.textContent = "Error al subir la imagen: " + uploadError.message;
+      message.textContent =
+        "Error al subir la imagen: " + uploadError.message;
       return;
     }
 
@@ -538,7 +599,10 @@ async function saveProduct(event) {
   }
 
   document.getElementById("product-form").reset();
-  message.textContent = "¡Producto guardado correctamente!";
+
+  message.textContent =
+    "¡Producto guardado correctamente!";
+
   await loadProducts();
 }
 
@@ -553,8 +617,12 @@ async function editProduct(product) {
   const price = Number(newPrice);
   const stock = Number(newStock);
 
-  if (!Number.isFinite(price) || price < 0 ||
-      !Number.isInteger(stock) || stock < 0) {
+  if (
+    !Number.isFinite(price) ||
+    price < 0 ||
+    !Number.isInteger(stock) ||
+    stock < 0
+  ) {
     alert("Introduce un precio y existencias válidos.");
     return;
   }
@@ -617,7 +685,10 @@ async function logout() {
   dashboard.hidden = true;
   loginSection.hidden = false;
   loginForm.reset();
+
   showMessage("Sesión cerrada correctamente.", false);
 }
 
+// Iniciar comprobación de sesión
 checkSession();
+
