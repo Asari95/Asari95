@@ -16,6 +16,7 @@ const adminContent = document.getElementById("admin-content");
 
 let currentUser = null;
 let products = [];
+let allOrders = [];
 
 // Formatear cantidades en pesos mexicanos
 function money(amount) {
@@ -25,6 +26,13 @@ function money(amount) {
   }).format(Number(amount) || 0);
 }
 
+// Crear elemento de texto seguro
+function createTextElement(tag, text) {
+  const element = document.createElement(tag);
+  element.textContent = text;
+  return element;
+}
+
 // Mostrar mensajes de inicio de sesión
 function showMessage(message, isError = true) {
   loginMessage.textContent = message;
@@ -32,7 +40,7 @@ function showMessage(message, isError = true) {
 }
 
 // Recuperación de contraseña
-supabaseClient.auth.onAuthStateChange((event, session) => {
+supabaseClient.auth.onAuthStateChange((event) => {
   if (event !== "PASSWORD_RECOVERY") return;
 
   loginSection.hidden = true;
@@ -236,6 +244,26 @@ async function showDashboard() {
 
     <section id="orders-section">
       <h2>Pedidos recibidos 🛍️</h2>
+
+      <div id="sales-summary" class="sales-summary"></div>
+
+      <h3>Buscar y filtrar pedidos</h3>
+
+      <input
+        type="search"
+        id="order-search"
+        placeholder="Buscar por nombre o teléfono..."
+      >
+
+      <select id="order-filter">
+        <option value="all">Todos los pedidos</option>
+        <option value="pending">Pendientes</option>
+        <option value="confirmed">Confirmados</option>
+        <option value="shipped">Enviados</option>
+        <option value="completed">Completados</option>
+        <option value="cancelled">Cancelados</option>
+      </select>
+
       <p id="orders-message">Cargando pedidos...</p>
 
       <button type="button" id="reload-orders">
@@ -252,12 +280,17 @@ async function showDashboard() {
   document.getElementById("logout-button")
     .addEventListener("click", logout);
 
-  // Cargar productos y pedidos
-  await loadProducts();
-  await loadOrders();
-
   document.getElementById("reload-orders")
     .addEventListener("click", loadOrders);
+
+  document.getElementById("order-search")
+    .addEventListener("input", renderOrders);
+
+  document.getElementById("order-filter")
+    .addEventListener("change", renderOrders);
+
+  await loadProducts();
+  await loadOrders();
 }
 
 // Cargar productos desde Supabase
@@ -315,12 +348,13 @@ async function loadOrders() {
       return;
     }
 
-    const orders = data || [];
+    allOrders = data || [];
 
     message.textContent =
-      `Pedidos recibidos: ${orders.length}`;
+      `Pedidos recibidos: ${allOrders.length}`;
 
-    renderOrders(orders);
+    renderSalesSummary();
+    renderOrders();
 
   } catch (error) {
     message.textContent =
@@ -328,15 +362,119 @@ async function loadOrders() {
   }
 }
 
-// Mostrar pedidos
-function renderOrders(orders) {
+// Mostrar resumen de ventas
+function renderSalesSummary() {
+  const summary = document.getElementById("sales-summary");
+
+  if (!summary) return;
+
+  const validOrders = allOrders.filter(
+    order => order.status !== "cancelled"
+  );
+
+  const totalSales = validOrders.reduce(
+    (sum, order) => sum + Number(order.total || 0),
+    0
+  );
+
+  const pending = allOrders.filter(
+    order => order.status === "pending"
+  ).length;
+
+  const completed = allOrders.filter(
+    order => order.status === "completed"
+  ).length;
+
+  summary.innerHTML = "";
+
+  const cards = [
+    {
+      title: "Ventas no canceladas",
+      value: money(totalSales)
+    },
+    {
+      title: "Pedidos pendientes",
+      value: pending
+    },
+    {
+      title: "Pedidos completados",
+      value: completed
+    },
+    {
+      title: "Total de pedidos",
+      value: allOrders.length
+    }
+  ];
+
+  cards.forEach(item => {
+    const card = document.createElement("article");
+    card.className = "product-admin-card";
+
+    card.append(
+      createTextElement("h4", item.title),
+      createTextElement("h2", String(item.value))
+    );
+
+    summary.appendChild(card);
+  });
+}
+
+// Convertir teléfono a formato internacional para WhatsApp
+function whatsappNumber(phone) {
+  let number = String(phone || "").replace(/\D/g, "");
+
+  if (!number) return "";
+
+  if (number.startsWith("521") && number.length === 13) {
+    return number;
+  }
+
+  if (number.startsWith("52") && number.length === 12) {
+    return number;
+  }
+
+  if (number.length === 10) {
+    return "52" + number;
+  }
+
+  return number;
+}
+
+// Crear mensaje de WhatsApp del pedido
+function createWhatsAppMessage(order) {
+  const details = Array.isArray(order.items)
+    ? order.items.map(item =>
+        `• ${item.name} | Cantidad: ${item.quantity} | Subtotal: ${money(item.subtotal)}`
+      ).join("\n")
+    : "Sin detalle de productos";
+
+  return [
+    "¡Hola " + order.customer_name + "! 👋",
+    "",
+    "Te contactamos de JEHOVÁ JIREH.",
+    "Este es el detalle de tu pedido:",
+    "",
+    "Pedido #" + order.id.slice(0, 8),
+    details,
+    "",
+    "Total: " + money(order.total),
+    "",
+    "¡Gracias por tu compra! 💚"
+  ].join("\n");
+}
+
+// Mostrar pedidos con búsqueda y filtros
+function renderOrders() {
   const list = document.getElementById("orders-list");
+  const search = document.getElementById("order-search");
+  const filter = document.getElementById("order-filter");
+
+  if (!list || !search || !filter) return;
+
   list.innerHTML = "";
 
-  if (!orders.length) {
-    list.textContent = "Todavía no hay pedidos registrados.";
-    return;
-  }
+  const searchText = search.value.trim().toLowerCase();
+  const selectedStatus = filter.value;
 
   const statusLabels = {
     pending: "Pendiente",
@@ -346,61 +484,88 @@ function renderOrders(orders) {
     cancelled: "Cancelado"
   };
 
-  orders.forEach(order => {
+  const filteredOrders = allOrders.filter(order => {
+    const matchesSearch =
+      String(order.customer_name || "").toLowerCase().includes(searchText) ||
+      String(order.customer_phone || "").toLowerCase().includes(searchText);
+
+    const matchesStatus =
+      selectedStatus === "all" || order.status === selectedStatus;
+
+    return matchesSearch && matchesStatus;
+  });
+
+  if (!filteredOrders.length) {
+    list.textContent = "No se encontraron pedidos con esos criterios.";
+    return;
+  }
+
+  filteredOrders.forEach(order => {
     const card = document.createElement("article");
     card.className = "product-admin-card";
 
-    const title = document.createElement("h3");
-    title.textContent =
-      "Pedido #" + order.id.slice(0, 8);
+    const title = createTextElement(
+      "h3",
+      "Pedido #" + order.id.slice(0, 8)
+    );
 
-    const date = document.createElement("p");
-    date.textContent =
+    const date = createTextElement(
+      "p",
       "Fecha: " +
-      new Date(order.created_at).toLocaleString("es-MX");
+      new Date(order.created_at).toLocaleString("es-MX")
+    );
 
-    const customer = document.createElement("p");
-    customer.textContent =
-      "Cliente: " + order.customer_name;
+    const customer = createTextElement(
+      "p",
+      "Cliente: " + (order.customer_name || "Sin nombre")
+    );
 
-    const phone = document.createElement("p");
-    phone.textContent =
-      "Teléfono: " + (order.customer_phone || "No indicado");
+    const phone = createTextElement(
+      "p",
+      "Teléfono: " + (order.customer_phone || "No indicado")
+    );
 
-    const delivery = document.createElement("p");
-    delivery.textContent =
+    const delivery = createTextElement(
+      "p",
       "Entrega: " +
       (order.delivery_method === "envio"
         ? "A domicilio"
-        : "Recoger");
+        : "Recoger")
+    );
 
-    const address = document.createElement("p");
-    address.textContent =
-      "Dirección: " + (order.customer_address || "No aplica");
+    const address = createTextElement(
+      "p",
+      "Dirección: " + (order.customer_address || "No aplica")
+    );
 
-    const references = document.createElement("p");
-    references.textContent =
-      "Referencias: " + (order.references_text || "Ninguna");
+    const references = createTextElement(
+      "p",
+      "Referencias: " + (order.references_text || "Ninguna")
+    );
 
-    const productsTitle = document.createElement("strong");
-    productsTitle.textContent = "Productos:";
+    const productsTitle = createTextElement("strong", "Productos:");
 
-    const productsDetails = document.createElement("p");
+    const productsDetails = createTextElement(
+      "p",
+      Array.isArray(order.items)
+        ? order.items.map(item =>
+            `${item.name} | Cantidad: ${item.quantity} | Subtotal: ${money(item.subtotal)}`
+          ).join("\n")
+        : "Sin detalle de productos"
+    );
+
     productsDetails.style.whiteSpace = "pre-line";
 
-    productsDetails.textContent = Array.isArray(order.items)
-      ? order.items.map(item =>
-          `${item.name} | Cantidad: ${item.quantity} | Subtotal: ${money(item.subtotal)}`
-        ).join("\n")
-      : "Sin detalle de productos";
+    const total = createTextElement(
+      "h3",
+      "Total: " + money(order.total)
+    );
 
-    const total = document.createElement("h3");
-    total.textContent = "Total: " + money(order.total);
-
-    const statusText = document.createElement("p");
-    statusText.textContent =
+    const statusText = createTextElement(
+      "p",
       "Estado actual: " +
-      (statusLabels[order.status] || order.status);
+      (statusLabels[order.status] || order.status)
+    );
 
     const select = document.createElement("select");
 
@@ -420,6 +585,27 @@ function renderOrders(orders) {
       updateOrderStatus(order.id, select.value, updateButton);
     });
 
+    const whatsappButton = document.createElement("button");
+    whatsappButton.type = "button";
+    whatsappButton.textContent = "Contactar por WhatsApp";
+
+    const number = whatsappNumber(order.customer_phone);
+
+    if (number) {
+      whatsappButton.addEventListener("click", () => {
+        const url =
+          "https://wa.me/" +
+          number +
+          "?text=" +
+          encodeURIComponent(createWhatsAppMessage(order));
+
+        window.open(url, "_blank", "noopener,noreferrer");
+      });
+    } else {
+      whatsappButton.disabled = true;
+      whatsappButton.textContent = "Cliente sin teléfono";
+    }
+
     card.append(
       title,
       date,
@@ -433,7 +619,8 @@ function renderOrders(orders) {
       total,
       statusText,
       select,
-      updateButton
+      updateButton,
+      whatsappButton
     );
 
     list.appendChild(card);
@@ -485,17 +672,19 @@ function renderProducts() {
     const card = document.createElement("article");
     card.className = "product-admin-card";
 
-    const title = document.createElement("h4");
-    title.textContent = product.name;
+    const title = createTextElement("h4", product.name);
 
-    const details = document.createElement("p");
-    details.textContent =
-      `${product.category} | ${money(product.price)} | Existencias: ${product.stock}`;
+    const details = createTextElement(
+      "p",
+      `${product.category} | ${money(product.price)} | Existencias: ${product.stock}`
+    );
 
-    const status = document.createElement("p");
-    status.textContent = product.active
-      ? "Visible en la tienda"
-      : "Oculto en la tienda";
+    const status = createTextElement(
+      "p",
+      product.active
+        ? "Visible en la tienda"
+        : "Oculto en la tienda"
+    );
 
     card.append(title, details, status);
 
@@ -546,8 +735,7 @@ async function saveProduct(event) {
     !Number.isInteger(stock) ||
     stock < 0
   ) {
-    message.textContent =
-      "Revisa el nombre, precio y existencias.";
+    message.textContent = "Revisa el nombre, precio y existencias.";
     return;
   }
 
@@ -555,8 +743,7 @@ async function saveProduct(event) {
 
   if (imageFile) {
     if (!imageFile.type.startsWith("image/")) {
-      message.textContent =
-        "Selecciona un archivo de imagen válido.";
+      message.textContent = "Selecciona un archivo de imagen válido.";
       return;
     }
 
@@ -600,8 +787,7 @@ async function saveProduct(event) {
 
   document.getElementById("product-form").reset();
 
-  message.textContent =
-    "¡Producto guardado correctamente!";
+  message.textContent = "¡Producto guardado correctamente!";
 
   await loadProducts();
 }
