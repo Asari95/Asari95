@@ -204,8 +204,21 @@ async function showDashboard() {
 
     <hr>
 
-    <h3>Productos registrados</h3>
-    <div id="product-list">Cargando...</div>
+   <h3>Productos registrados</h3>
+<div id="product-list">Cargando...</div>
+
+<hr>
+
+<section id="orders-section">
+  <h2>Pedidos recibidos 🛍️</h2>
+  <p id="orders-message">Cargando pedidos...</p>
+
+  <button type="button" id="reload-orders">
+    Actualizar pedidos
+  </button>
+
+  <div id="orders-list"></div>
+</section>
   `;
 
   document.getElementById("product-form")
@@ -213,8 +226,11 @@ async function showDashboard() {
 
   document.getElementById("logout-button")
     .addEventListener("click", logout);
+ 
+await loadOrders();
 
-  await loadProducts();
+document.getElementById("reload-orders")
+  .addEventListener("click", loadOrders);
 }
 
 // Cargar productos
@@ -237,6 +253,164 @@ async function loadProducts() {
   message.textContent = `Productos registrados: ${products.length}`;
 
   renderProducts();
+}
+
+// Cargar pedidos desde Supabase
+async function loadOrders() {
+  const message = document.getElementById("orders-message");
+  const list = document.getElementById("orders-list");
+
+  message.textContent = "Cargando pedidos...";
+  list.innerHTML = "";
+
+  const { data, error } = await supabaseClient
+    .from("orders")
+    .select("*")
+    .order("created_at", { ascending: false });
+
+  if (error) {
+    message.textContent =
+      "Error al cargar pedidos: " + error.message;
+    return;
+  }
+
+  message.textContent =
+    `Pedidos recibidos: ${data.length}`;
+
+  renderOrders(data || []);
+}
+
+// Mostrar pedidos
+function renderOrders(orders) {
+  const list = document.getElementById("orders-list");
+  list.innerHTML = "";
+
+  if (!orders.length) {
+    list.textContent = "Todavía no hay pedidos registrados.";
+    return;
+  }
+
+  const statusLabels = {
+    pending: "Pendiente",
+    confirmed: "Confirmado",
+    shipped: "Enviado",
+    completed: "Completado",
+    cancelled: "Cancelado"
+  };
+
+  orders.forEach(order => {
+    const card = document.createElement("article");
+    card.className = "product-admin-card";
+
+    const title = document.createElement("h3");
+    title.textContent =
+      "Pedido #" + order.id.slice(0, 8);
+
+    const date = document.createElement("p");
+    date.textContent =
+      "Fecha: " +
+      new Date(order.created_at).toLocaleString("es-MX");
+
+    const customer = document.createElement("p");
+    customer.textContent =
+      "Cliente: " + order.customer_name;
+
+    const phone = document.createElement("p");
+    phone.textContent =
+      "Teléfono: " + (order.customer_phone || "No indicado");
+
+    const delivery = document.createElement("p");
+    delivery.textContent =
+      "Entrega: " +
+      (order.delivery_method === "envio"
+        ? "A domicilio"
+        : "Recoger");
+
+    const address = document.createElement("p");
+    address.textContent =
+      "Dirección: " + (order.customer_address || "No aplica");
+
+    const references = document.createElement("p");
+    references.textContent =
+      "Referencias: " + (order.references_text || "Ninguna");
+
+    const productsTitle = document.createElement("strong");
+    productsTitle.textContent = "Productos:";
+
+    const productsDetails = document.createElement("p");
+    productsDetails.style.whiteSpace = "pre-line";
+
+    productsDetails.textContent = Array.isArray(order.items)
+      ? order.items.map(item =>
+          `${item.name} | Cantidad: ${item.quantity} | Subtotal: ${money(item.subtotal)}`
+        ).join("\n")
+      : "Sin detalle de productos";
+
+    const total = document.createElement("h3");
+    total.textContent = "Total: " + money(order.total);
+
+    const statusText = document.createElement("p");
+    statusText.textContent =
+      "Estado actual: " +
+      (statusLabels[order.status] || order.status);
+
+    const select = document.createElement("select");
+
+    Object.entries(statusLabels).forEach(([value, label]) => {
+      const option = document.createElement("option");
+      option.value = value;
+      option.textContent = label;
+      option.selected = order.status === value;
+      select.appendChild(option);
+    });
+
+    const updateButton = document.createElement("button");
+    updateButton.type = "button";
+    updateButton.textContent = "Actualizar estado";
+
+    updateButton.addEventListener("click", () => {
+      updateOrderStatus(order.id, select.value, updateButton);
+    });
+
+    card.append(
+      title,
+      date,
+      customer,
+      phone,
+      delivery,
+      address,
+      references,
+      productsTitle,
+      productsDetails,
+      total,
+      statusText,
+      select,
+      updateButton
+    );
+
+    list.appendChild(card);
+  });
+}
+
+// Actualizar estado del pedido
+async function updateOrderStatus(orderId, newStatus, button) {
+  button.disabled = true;
+
+  const { error } = await supabaseClient
+    .from("orders")
+    .update({ status: newStatus })
+    .eq("id", orderId);
+
+  button.disabled = false;
+
+  if (error) {
+    alert("No se pudo actualizar el pedido: " + error.message);
+    return;
+  }
+
+  alert("¡Estado del pedido actualizado correctamente!");
+
+  await loadOrders();
 }
 
 // Mostrar productos
