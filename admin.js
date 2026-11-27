@@ -255,6 +255,14 @@ async function loadProducts() {
   renderProducts();
 }
 
+// Formatear cantidades en pesos mexicanos
+function money(amount) {
+  return new Intl.NumberFormat("es-MX", {
+    style: "currency",
+    currency: "MXN"
+  }).format(Number(amount) || 0);
+}
+
 // Cargar pedidos desde Supabase
 async function loadOrders() {
   const message = document.getElementById("orders-message");
