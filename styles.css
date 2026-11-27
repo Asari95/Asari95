@@ -81,5 +81,60 @@
     <span>Elegancia en cada detalle.</span>
   </footer>
 
+/* ==========================================
+   CORRECCIÓN DE BOTONES Y ENLACES
+   ========================================== */
+
+#category-filters button,
+#shopping-cart button,
+.product-card button {
+  color: #ffffff;
+  background: #4b3026;
+  border: 1px solid #4b3026;
+  text-decoration: none;
+  opacity: 1;
+}
+
+#category-filters button {
+  background: #fffaf6;
+  color: #4b3026;
+  border-color: #d9c5b7;
+}
+
+#category-filters button.active,
+#category-filters button:hover {
+  background: #4b3026;
+  color: #ffffff;
+  border-color: #4b3026;
+}
+
+#shopping-cart button:hover,
+.product-card button:hover {
+  background: #c49a45;
+  color: #4b3026;
+  border-color: #c49a45;
+}
+
+#shopping-cart button:disabled,
+.product-card button:disabled {
+  background: #aaa;
+  color: #ffffff;
+  opacity: 1;
+}
+
+a {
+  color: #4b3026;
+}
+
+a:hover {
+  color: #b69a75;
+}
+
+button {
+  text-decoration: none;
+  opacity: 1;
+}
+
+
 </body>
 </html>
