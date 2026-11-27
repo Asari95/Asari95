@@ -1,5 +1,8 @@
 
-// JEHOVÁ JIREH - Administración
+// ==========================================
+// JEHOVÁ JIREH - ADMINISTRACIÓN
+// Inventario automático al completar ventas
+// ==========================================
 
 const cfg = window.JJ_CONFIG;
 
@@ -18,7 +21,6 @@ let currentUser = null;
 let products = [];
 let allOrders = [];
 
-// Formatear cantidades en pesos mexicanos
 function money(amount) {
   return new Intl.NumberFormat("es-MX", {
     style: "currency",
@@ -26,20 +28,21 @@ function money(amount) {
   }).format(Number(amount) || 0);
 }
 
-// Crear elemento de texto seguro
 function createTextElement(tag, text) {
   const element = document.createElement(tag);
   element.textContent = text;
   return element;
 }
 
-// Mostrar mensajes de inicio de sesión
 function showMessage(message, isError = true) {
   loginMessage.textContent = message;
   loginMessage.style.color = isError ? "#ffb3a7" : "#a8e6b0";
 }
 
-// Recuperación de contraseña
+// ==========================================
+// RECUPERACIÓN DE CONTRASEÑA
+// ==========================================
+
 supabaseClient.auth.onAuthStateChange((event) => {
   if (event !== "PASSWORD_RECOVERY") return;
 
@@ -52,22 +55,12 @@ supabaseClient.auth.onAuthStateChange((event) => {
 
     <form id="recovery-form">
       <label>Nueva contraseña</label>
-      <input
-        type="password"
-        id="new-password"
-        minlength="8"
-        required
-        placeholder="Mínimo 8 caracteres"
-      >
+      <input type="password" id="new-password"
+        minlength="8" required placeholder="Mínimo 8 caracteres">
 
       <label>Confirmar contraseña</label>
-      <input
-        type="password"
-        id="confirm-password"
-        minlength="8"
-        required
-        placeholder="Repite tu contraseña"
-      >
+      <input type="password" id="confirm-password"
+        minlength="8" required placeholder="Repite tu contraseña">
 
       <button type="submit">Guardar nueva contraseña</button>
       <p id="recovery-message"></p>
@@ -78,9 +71,14 @@ supabaseClient.auth.onAuthStateChange((event) => {
     .addEventListener("submit", async (e) => {
       e.preventDefault();
 
-      const password = document.getElementById("new-password").value;
-      const confirmation = document.getElementById("confirm-password").value;
-      const message = document.getElementById("recovery-message");
+      const password =
+        document.getElementById("new-password").value;
+
+      const confirmation =
+        document.getElementById("confirm-password").value;
+
+      const message =
+        document.getElementById("recovery-message");
 
       if (password !== confirmation) {
         message.textContent = "Las contraseñas no coinciden.";
@@ -90,7 +88,7 @@ supabaseClient.auth.onAuthStateChange((event) => {
       message.textContent = "Actualizando contraseña...";
 
       const { error } = await supabaseClient.auth.updateUser({
-        password: password
+        password
       });
 
       if (error) {
@@ -98,7 +96,8 @@ supabaseClient.auth.onAuthStateChange((event) => {
         return;
       }
 
-      message.textContent = "¡Contraseña actualizada correctamente!";
+      message.textContent =
+        "¡Contraseña actualizada correctamente!";
 
       await supabaseClient.auth.signOut();
 
@@ -113,19 +112,26 @@ supabaseClient.auth.onAuthStateChange((event) => {
     });
 });
 
-// Iniciar sesión
+// ==========================================
+// INICIAR SESIÓN
+// ==========================================
+
 loginForm.addEventListener("submit", async (event) => {
   event.preventDefault();
 
   showMessage("Verificando acceso...", false);
 
-  const email = document.getElementById("email").value.trim();
-  const password = document.getElementById("password").value;
+  const email =
+    document.getElementById("email").value.trim();
 
-  const { data, error } = await supabaseClient.auth.signInWithPassword({
-    email,
-    password
-  });
+  const password =
+    document.getElementById("password").value;
+
+  const { data, error } =
+    await supabaseClient.auth.signInWithPassword({
+      email,
+      password
+    });
 
   if (error) {
     showMessage("No se pudo iniciar sesión: " + error.message);
@@ -136,7 +142,10 @@ loginForm.addEventListener("submit", async (event) => {
   await showDashboard();
 });
 
-// Botón para recuperar contraseña
+// ==========================================
+// RECUPERAR CONTRASEÑA
+// ==========================================
+
 const recoveryButton = document.createElement("button");
 
 recoveryButton.type = "button";
@@ -146,7 +155,8 @@ recoveryButton.style.marginTop = "12px";
 loginForm.insertAdjacentElement("afterend", recoveryButton);
 
 recoveryButton.addEventListener("click", async () => {
-  const email = document.getElementById("email").value.trim();
+  const email =
+    document.getElementById("email").value.trim();
 
   if (!email) {
     showMessage("Primero escribe tu correo electrónico.", true);
@@ -155,24 +165,35 @@ recoveryButton.addEventListener("click", async () => {
 
   showMessage("Solicitando enlace de recuperación...", false);
 
-  const { error } = await supabaseClient.auth.resetPasswordForEmail(email, {
-    redirectTo: "https://asari95.github.io/Asari95/admin.html"
-  });
+  const { error } =
+    await supabaseClient.auth.resetPasswordForEmail(email, {
+      redirectTo:
+        "https://asari95.github.io/Asari95/admin.html"
+    });
 
   if (error) {
-    showMessage("No se pudo enviar el correo: " + error.message, true);
+    showMessage("No se pudo enviar el correo: " + error.message);
     return;
   }
 
-  showMessage("Solicitud enviada. Revisa tu correo electrónico.", false);
+  showMessage(
+    "Solicitud enviada. Revisa tu correo electrónico.",
+    false
+  );
 });
 
-// Comprobar sesión existente
+// ==========================================
+// COMPROBAR SESIÓN
+// ==========================================
+
 async function checkSession() {
-  const { data, error } = await supabaseClient.auth.getSession();
+  const { data, error } =
+    await supabaseClient.auth.getSession();
 
   if (error) {
-    showMessage("Error al verificar la sesión: " + error.message);
+    showMessage(
+      "Error al verificar la sesión: " + error.message
+    );
     return;
   }
 
@@ -182,7 +203,10 @@ async function checkSession() {
   }
 }
 
-// Mostrar panel de administración
+// ==========================================
+// PANEL DE ADMINISTRACIÓN
+// ==========================================
+
 async function showDashboard() {
   loginSection.hidden = true;
   dashboard.hidden = false;
@@ -211,22 +235,12 @@ async function showDashboard() {
         </select>
 
         <label>Precio (MXN)</label>
-        <input
-          id="product-price"
-          type="number"
-          min="0"
-          step="0.01"
-          required
-        >
+        <input id="product-price" type="number"
+          min="0" step="0.01" required>
 
         <label>Existencias</label>
-        <input
-          id="product-stock"
-          type="number"
-          min="0"
-          step="1"
-          required
-        >
+        <input id="product-stock" type="number"
+          min="0" step="1" required>
 
         <label>Fotografía del producto</label>
         <input id="product-image" type="file" accept="image/*">
@@ -245,15 +259,12 @@ async function showDashboard() {
     <section id="orders-section">
       <h2>Pedidos recibidos 🛍️</h2>
 
-      <div id="sales-summary" class="sales-summary"></div>
+      <div class="sales-summary" id="sales-summary"></div>
 
       <h3>Buscar y filtrar pedidos</h3>
 
-      <input
-        type="search"
-        id="order-search"
-        placeholder="Buscar por nombre o teléfono..."
-      >
+      <input type="search" id="order-search"
+        placeholder="Buscar por nombre o teléfono...">
 
       <select id="order-filter">
         <option value="all">Todos los pedidos</option>
@@ -281,7 +292,10 @@ async function showDashboard() {
     .addEventListener("click", logout);
 
   document.getElementById("reload-orders")
-    .addEventListener("click", loadOrders);
+    .addEventListener("click", async () => {
+      await loadOrders();
+      await loadProducts();
+    });
 
   document.getElementById("order-search")
     .addEventListener("input", renderOrders);
@@ -293,10 +307,15 @@ async function showDashboard() {
   await loadOrders();
 }
 
-// Cargar productos desde Supabase
+// ==========================================
+// CARGAR PRODUCTOS
+// ==========================================
+
 async function loadProducts() {
   const message = document.getElementById("admin-message");
   const list = document.getElementById("product-list");
+
+  if (!message || !list) return;
 
   message.textContent = "Cargando productos...";
   list.textContent = "Cargando...";
@@ -323,15 +342,20 @@ async function loadProducts() {
 
   } catch (error) {
     message.textContent =
-      "Error inesperado al cargar productos: " + error.message;
+      "Error inesperado: " + error.message;
     list.textContent = "";
   }
 }
 
-// Cargar pedidos desde Supabase
+// ==========================================
+// CARGAR PEDIDOS
+// ==========================================
+
 async function loadOrders() {
   const message = document.getElementById("orders-message");
   const list = document.getElementById("orders-list");
+
+  if (!message || !list) return;
 
   message.textContent = "Cargando pedidos...";
   list.innerHTML = "";
@@ -358,11 +382,14 @@ async function loadOrders() {
 
   } catch (error) {
     message.textContent =
-      "Error inesperado al cargar pedidos: " + error.message;
+      "Error inesperado: " + error.message;
   }
 }
 
-// Mostrar resumen de ventas
+// ==========================================
+// RESUMEN DE VENTAS
+// ==========================================
+
 function renderSalesSummary() {
   const summary = document.getElementById("sales-summary");
 
@@ -419,7 +446,10 @@ function renderSalesSummary() {
   });
 }
 
-// Convertir teléfono a formato internacional para WhatsApp
+// ==========================================
+// WHATSAPP
+// ==========================================
+
 function whatsappNumber(phone) {
   let number = String(phone || "").replace(/\D/g, "");
 
@@ -440,7 +470,6 @@ function whatsappNumber(phone) {
   return number;
 }
 
-// Crear mensaje de WhatsApp del pedido
 function createWhatsAppMessage(order) {
   const details = Array.isArray(order.items)
     ? order.items.map(item =>
@@ -463,7 +492,10 @@ function createWhatsAppMessage(order) {
   ].join("\n");
 }
 
-// Mostrar pedidos con búsqueda y filtros
+// ==========================================
+// MOSTRAR PEDIDOS
+// ==========================================
+
 function renderOrders() {
   const list = document.getElementById("orders-list");
   const search = document.getElementById("order-search");
@@ -486,17 +518,21 @@ function renderOrders() {
 
   const filteredOrders = allOrders.filter(order => {
     const matchesSearch =
-      String(order.customer_name || "").toLowerCase().includes(searchText) ||
-      String(order.customer_phone || "").toLowerCase().includes(searchText);
+      String(order.customer_name || "")
+        .toLowerCase().includes(searchText) ||
+      String(order.customer_phone || "")
+        .toLowerCase().includes(searchText);
 
     const matchesStatus =
-      selectedStatus === "all" || order.status === selectedStatus;
+      selectedStatus === "all" ||
+      order.status === selectedStatus;
 
     return matchesSearch && matchesStatus;
   });
 
   if (!filteredOrders.length) {
-    list.textContent = "No se encontraron pedidos con esos criterios.";
+    list.textContent =
+      "No se encontraron pedidos con esos criterios.";
     return;
   }
 
@@ -543,7 +579,8 @@ function renderOrders() {
       "Referencias: " + (order.references_text || "Ninguna")
     );
 
-    const productsTitle = createTextElement("strong", "Productos:");
+    const productsTitle =
+      createTextElement("strong", "Productos:");
 
     const productsDetails = createTextElement(
       "p",
@@ -574,12 +611,36 @@ function renderOrders() {
       option.value = value;
       option.textContent = label;
       option.selected = order.status === value;
+
+      // Evitar reactivar pedidos cancelados
+      // o modificar pedidos completados
+
+      if (
+        order.status === "cancelled" ||
+        order.status === "completed"
+      ) {
+        option.disabled = value !== order.status;
+      }
+
+      // No permitir regresar a pendiente
+
+      if (
+        order.status !== "pending" &&
+        value === "pending"
+      ) {
+        option.disabled = true;
+      }
+
       select.appendChild(option);
     });
 
     const updateButton = document.createElement("button");
     updateButton.type = "button";
     updateButton.textContent = "Actualizar estado";
+
+    updateButton.disabled =
+      order.status === "cancelled" ||
+      order.status === "completed";
 
     updateButton.addEventListener("click", () => {
       updateOrderStatus(order.id, select.value, updateButton);
@@ -627,27 +688,81 @@ function renderOrders() {
   });
 }
 
-// Actualizar estado del pedido
+// ==========================================
+// ACTUALIZAR ESTADO Y CONTROLAR INVENTARIO
+// ==========================================
+
 async function updateOrderStatus(orderId, newStatus, button) {
+  const order = allOrders.find(item => item.id === orderId);
+
+  if (!order) {
+    alert("No se encontró el pedido.");
+    return;
+  }
+
+  if (
+    order.status === "cancelled" ||
+    order.status === "completed"
+  ) {
+    alert("Este pedido ya tiene un estado definitivo.");
+    return;
+  }
+
+  if (newStatus === "completed") {
+    const confirmation = confirm(
+      "¿Deseas completar esta venta?\n\n" +
+      "Al continuar, se descontarán automáticamente " +
+      "las existencias de los productos vendidos.\n\n" +
+      "Esta acción no se puede revertir desde el panel."
+    );
+
+    if (!confirmation) return;
+  }
+
   button.disabled = true;
 
   const originalText = button.textContent;
   button.textContent = "Actualizando...";
 
   try {
-    const { error } = await supabaseClient
-      .from("orders")
-      .update({ status: newStatus })
-      .eq("id", orderId);
+    // Utilizar la función SQL segura de Supabase.
+    // El descuento sucede dentro de la misma transacción
+    // que completa el pedido.
+
+    const { data, error } = await supabaseClient.rpc(
+      "update_order_status_with_inventory",
+      {
+        p_order_id: orderId,
+        p_new_status: newStatus
+      }
+    );
 
     if (error) {
-      alert("No se pudo actualizar el pedido: " + error.message);
+      alert(
+        "No se pudo actualizar el pedido:\n\n" +
+        error.message
+      );
       return;
     }
 
-    alert("¡Estado del pedido actualizado correctamente!");
+    if (data && data.success === false) {
+      alert(data.message || "No se pudo actualizar el pedido.");
+      return;
+    }
+
+    if (newStatus === "completed") {
+      alert(
+        "¡Venta completada correctamente! 💚\n\n" +
+        "Las existencias se descontaron automáticamente."
+      );
+    } else {
+      alert(
+        "¡Estado del pedido actualizado correctamente!"
+      );
+    }
 
     await loadOrders();
+    await loadProducts();
 
   } catch (error) {
     alert("Error inesperado: " + error.message);
@@ -658,17 +773,24 @@ async function updateOrderStatus(orderId, newStatus, button) {
   }
 }
 
-// Mostrar productos
+// ==========================================
+// MOSTRAR PRODUCTOS
+// ==========================================
+
 function renderProducts() {
   const list = document.getElementById("product-list");
+
+  if (!list) return;
+
   list.innerHTML = "";
 
   if (products.length === 0) {
-    list.textContent = "Todavía no tienes productos registrados.";
+    list.textContent =
+      "Todavía no tienes productos registrados.";
     return;
   }
 
-  products.forEach((product) => {
+  products.forEach(product => {
     const card = document.createElement("article");
     card.className = "product-admin-card";
 
@@ -702,31 +824,53 @@ function renderProducts() {
     editButton.addEventListener("click", () => editProduct(product));
 
     const visibilityButton = document.createElement("button");
-    visibilityButton.textContent = product.active ? "Ocultar" : "Mostrar";
-    visibilityButton.addEventListener("click", () => toggleProduct(product));
+    visibilityButton.textContent =
+      product.active ? "Ocultar" : "Mostrar";
+
+    visibilityButton.addEventListener(
+      "click",
+      () => toggleProduct(product)
+    );
 
     const deleteButton = document.createElement("button");
     deleteButton.textContent = "Eliminar";
-    deleteButton.addEventListener("click", () => deleteProduct(product));
+    deleteButton.addEventListener(
+      "click",
+      () => deleteProduct(product)
+    );
 
     card.append(editButton, visibilityButton, deleteButton);
     list.appendChild(card);
   });
 }
 
-// Subir imagen y guardar producto
+// ==========================================
+// GUARDAR PRODUCTO
+// ==========================================
+
 async function saveProduct(event) {
   event.preventDefault();
 
   const message = document.getElementById("admin-message");
   message.textContent = "Guardando producto...";
 
-  const name = document.getElementById("product-name").value.trim();
-  const description = document.getElementById("product-description").value.trim();
-  const category = document.getElementById("product-category").value;
-  const price = Number(document.getElementById("product-price").value);
-  const stock = Number(document.getElementById("product-stock").value);
-  const imageFile = document.getElementById("product-image").files[0];
+  const name =
+    document.getElementById("product-name").value.trim();
+
+  const description =
+    document.getElementById("product-description").value.trim();
+
+  const category =
+    document.getElementById("product-category").value;
+
+  const price =
+    Number(document.getElementById("product-price").value);
+
+  const stock =
+    Number(document.getElementById("product-stock").value);
+
+  const imageFile =
+    document.getElementById("product-image").files[0];
 
   if (
     !name ||
@@ -735,7 +879,8 @@ async function saveProduct(event) {
     !Number.isInteger(stock) ||
     stock < 0
   ) {
-    message.textContent = "Revisa el nombre, precio y existencias.";
+    message.textContent =
+      "Revisa el nombre, precio y existencias.";
     return;
   }
 
@@ -743,17 +888,21 @@ async function saveProduct(event) {
 
   if (imageFile) {
     if (!imageFile.type.startsWith("image/")) {
-      message.textContent = "Selecciona un archivo de imagen válido.";
+      message.textContent =
+        "Selecciona un archivo de imagen válido.";
       return;
     }
 
-    const extension = imageFile.name.split(".").pop().toLowerCase();
+    const extension =
+      imageFile.name.split(".").pop().toLowerCase();
+
     const filePath =
       `${currentUser.id}/${crypto.randomUUID()}.${extension}`;
 
-    const { error: uploadError } = await supabaseClient.storage
-      .from("product-images")
-      .upload(filePath, imageFile);
+    const { error: uploadError } =
+      await supabaseClient.storage
+        .from("product-images")
+        .upload(filePath, imageFile);
 
     if (uploadError) {
       message.textContent =
@@ -761,9 +910,10 @@ async function saveProduct(event) {
       return;
     }
 
-    const { data: publicData } = supabaseClient.storage
-      .from("product-images")
-      .getPublicUrl(filePath);
+    const { data: publicData } =
+      supabaseClient.storage
+        .from("product-images")
+        .getPublicUrl(filePath);
 
     imageUrl = publicData.publicUrl;
   }
@@ -781,23 +931,32 @@ async function saveProduct(event) {
     });
 
   if (error) {
-    message.textContent = "Error al guardar: " + error.message;
+    message.textContent =
+      "Error al guardar: " + error.message;
     return;
   }
 
   document.getElementById("product-form").reset();
 
-  message.textContent = "¡Producto guardado correctamente!";
+  message.textContent =
+    "¡Producto guardado correctamente!";
 
   await loadProducts();
 }
 
-// Editar precio y existencias
+// ==========================================
+// EDITAR PRODUCTO
+// ==========================================
+
 async function editProduct(product) {
-  const newPrice = prompt("Nuevo precio en MXN:", product.price);
+  const newPrice =
+    prompt("Nuevo precio en MXN:", product.price);
+
   if (newPrice === null) return;
 
-  const newStock = prompt("Nuevas existencias:", product.stock);
+  const newStock =
+    prompt("Nuevas existencias:", product.stock);
+
   if (newStock === null) return;
 
   const price = Number(newPrice);
@@ -826,7 +985,10 @@ async function editProduct(product) {
   await loadProducts();
 }
 
-// Mostrar u ocultar producto
+// ==========================================
+// MOSTRAR U OCULTAR PRODUCTO
+// ==========================================
+
 async function toggleProduct(product) {
   const { error } = await supabaseClient
     .from("products")
@@ -841,9 +1003,14 @@ async function toggleProduct(product) {
   await loadProducts();
 }
 
-// Eliminar producto
+// ==========================================
+// ELIMINAR PRODUCTO
+// ==========================================
+
 async function deleteProduct(product) {
-  if (!confirm(`¿Deseas eliminar "${product.name}"?`)) return;
+  if (!confirm(`¿Deseas eliminar "${product.name}"?`)) {
+    return;
+  }
 
   const { error } = await supabaseClient
     .from("products")
@@ -858,7 +1025,10 @@ async function deleteProduct(product) {
   await loadProducts();
 }
 
-// Cerrar sesión
+// ==========================================
+// CERRAR SESIÓN
+// ==========================================
+
 async function logout() {
   const { error } = await supabaseClient.auth.signOut();
 
@@ -875,6 +1045,8 @@ async function logout() {
   showMessage("Sesión cerrada correctamente.", false);
 }
 
-// Iniciar comprobación de sesión
-checkSession();
+// ==========================================
+// INICIAR
+// ==========================================
 
+checkSession();
